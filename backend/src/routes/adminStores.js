@@ -1,80 +1,87 @@
-import express from 'express';
-import { authenticate, authorizeRoles } from '../middlewares/auth.js';
+import express from "express";
+import bcrypt from "bcryptjs";
 
 const router = express.Router();
 
-router.use(authenticate, authorizeRoles('system_admin'));
-
-// Get all stores
+// Get all stores with owner info and average rating
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await req.pgPool.query('SELECT * FROM stores ORDER BY id ASC');
+    const query = `
+      SELECT 
+        s.id, 
+        s.name, 
+        s.email, 
+        s.address, 
+        s.owner_id,
+        u.name AS owner_name,
+        u.email AS owner_email,
+        COALESCE(AVG(r.rating), 0) AS avg_rating
+      FROM stores s
+      LEFT JOIN users u ON s.owner_id = u.id
+      LEFT JOIN ratings r ON s.id = r.store_id
+      GROUP BY s.id, u.name, u.email
+      ORDER BY s.id ASC;
+    `;
+    const { rows } = await req.pgPool.query(query);
     res.json(rows);
   } catch (err) {
+    console.error('Failed to fetch stores with ratings:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get store by ID
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await req.pgPool.query('SELECT * FROM stores WHERE id=$1', [id]);
-    if (!result.rows.length) {
-      return res.status(404).json({ error: 'Store not found' });
-    }
-    res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Create a new store
+// Create store + owner user
 router.post('/', async (req, res) => {
-  const { name, email, address, owner_id } = req.body;
+  const { name, email, address, password } = req.body;
+  const pool = req.pgPool;
 
   try {
-    const result = await req.pgPool.query(
-      'INSERT INTO stores (name, email, address, owner_id) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, email, address, owner_id]
+    // 1. Create store owner user
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const userRes = await pool.query(
+      'INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id',
+      [name, email, hashedPassword, 'store_owner']
     );
-    res.status(201).json(result.rows[0]);
+    const ownerId = userRes.rows[0].id;
+
+    // 2. Create store
+    const storeRes = await pool.query(
+      'INSERT INTO stores (name, email, address, owner_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [name, email, address, ownerId]
+    );
+
+    res.status(201).json(storeRes.rows[0]);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Update store by ID
-router.put('/:id', async (req, res) => {
-  const { id } = req.params;
-  const { name, email, address, owner_id } = req.body;
-
+// Update store (doesn't touch password/user)
+router.put("/:id", async (req, res) => {
+  const pool = req.pgPool;
+  const { name, email, address } = req.body;
   try {
-    const result = await req.pgPool.query(
-      'UPDATE stores SET name=$1, email=$2, address=$3, owner_id=$4 WHERE id=$5 RETURNING *',
-      [name, email, address, owner_id, id]
+    const result = await pool.query(
+      `UPDATE stores SET name=$1, email=$2, address=$3 WHERE id=$4 RETURNING *`,
+      [name, email, address, req.params.id]
     );
-    if (!result.rows.length) {
-      return res.status(404).json({ error: 'Store not found' });
-    }
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Failed to update store" });
   }
 });
 
-// Delete store by ID
-router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
-
+// Delete store (also deletes user automatically if you set ON DELETE CASCADE)
+router.delete("/:id", async (req, res) => {
+  const pool = req.pgPool;
   try {
-    const result = await req.pgPool.query('DELETE FROM stores WHERE id=$1 RETURNING id', [id]);
-    if (!result.rows.length) {
-      return res.status(404).json({ error: 'Store not found' });
-    }
-    res.json({ message: 'Store deleted' });
+    await pool.query("DELETE FROM stores WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete store" });
   }
 });
 

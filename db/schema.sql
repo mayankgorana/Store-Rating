@@ -25,3 +25,10 @@ CREATE TABLE ratings (
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(user_id, store_id)
 );
+
+
+-- owner@example.com
+-- Owner@123
+
+-- admin@example.com
+-- Admin@123

@@ -8,9 +8,11 @@ import userRoutes from './src/routes/user.js';
 import storeRoutes from './src/routes/store.js';
 import ratingRoutes from './src/routes/rating.js';
 import authRoutes from './src/routes/auth.js';
+import adminSummaryRoutes from './src/routes/adminSummary.js';
+import ownerRoutes from './src/routes/owner.js';
+import adminRoutes from './src/routes/admin.js';   // ✅
 
 import pool from './src/models/db.js';
-
 import { authenticate, authorizeRoles } from './src/middlewares/auth.js';
 
 dotenv.config();
@@ -33,16 +35,18 @@ app.get('/', (req, res) => {
   res.send('Backend API is running');
 });
 
+// Routes
 app.use('/api/auth', authRoutes);
-
 app.use('/api/admin/users', authenticate, authorizeRoles('system_admin'), adminUserRoutes);
 app.use('/api/admin/stores', authenticate, authorizeRoles('system_admin'), adminStoreRoutes);
-
+app.use('/api/admin/summary', adminSummaryRoutes);
 app.use('/api/users', authenticate, authorizeRoles('system_admin'), userRoutes);
-
 app.use('/api/stores', authenticate, storeRoutes);
 app.use('/api/ratings', authenticate, ratingRoutes);
+app.use('/api/owner', ownerRoutes);
+app.use("/api/admin", adminRoutes);   // ✅ Now safe
 
+// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Internal server error' });
