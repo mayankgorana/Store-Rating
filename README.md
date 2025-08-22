@@ -1,4 +1,4 @@
-# Store Rating
+# Store Rating App
 
 This project is a full-stack store rating system built using React, Node.js, Express, and PostgreSQL. It features secure user authentication, role-based access control, and allows users to rate stores while admins manage users and stores.
 
@@ -37,6 +37,66 @@ store-rating/
 │ └── app.js
 ├── .env
 ├── package.json
+
+## User Roles & Functionalities
+
+### 1. System Administrator
+- Add new stores, normal users, and admin users.
+- Access a dashboard displaying:
+  - Total number of users
+  - Total number of stores
+  - Total number of submitted ratings
+- Add new users with details: Name, Email, Password, Address
+- View lists of stores with details: Name, Email, Address, Rating
+- View lists of normal and admin users with details: Name, Email, Address, Role
+- Apply filters on listings based on Name, Email, Address, and Role
+- View details of all users, including Ratings for Store Owners
+- Logout functionality
+
+### 2. Normal User
+- Sign up and log in to the platform
+- Signup form fields: Name, Email, Address, Password
+- Update password after logging in
+- View a list of all registered stores
+- Search for stores by Name and Address
+- Store listings display:
+  - Store Name
+  - Address
+  - Overall Rating
+  - User's Submitted Rating
+  - Option to submit a rating
+  - Option to modify their submitted rating
+- Submit ratings between 1 and 5
+- Logout functionality
+
+### 3. Store Owner
+- Log in to the platform
+- Update password after logging in
+- Dashboard functionalities:
+  - View a list of users who submitted ratings for their store
+  - See the average rating of their store
+- Logout functionality
+
+---
+
+## Form Validations
+- **Name:** Minimum 20 characters, maximum 60 characters
+- **Address:** Maximum 400 characters
+- **Password:** 8–16 characters, must include at least one uppercase letter and one special character
+- **Email:** Standard email validation rules
+
+---
+
+## Features
+- User authentication and role-based authorization
+- Dashboard views for Admin and Store Owner
+- Rating system for stores (1–5)
+- Search and filter functionality for stores and users
+- Update and modify ratings
+- Sorting for tables (ascending/descending) on key fields like Name, Email, etc.
+- Responsive frontend using ReactJS
+- Database schema following best practices
+- Proper form validations and error handling
 
 
 ⚙️ **Installation Steps**
